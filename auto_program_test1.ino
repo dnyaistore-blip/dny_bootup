@@ -9,7 +9,7 @@
 #include <nvs.h>
 #include <ArduinoOTA.h>
 #include <WiFiManager.h>
-#include <ArduinoJson.h> // For parsing the version.json file
+#include <ArduinoJson.h>
 
 // --- Configuration Constants ---
 const char* NVS_NAMESPACE = "product_config";
@@ -17,10 +17,11 @@ const char* NVS_KEY_IS_CONFIGURED = "is_configured";
 const char* DEFAULT_AP_SSID = "MyProduct_Setup";
 const char* DEFAULT_AP_PASSWORD = "configureme";
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 30000;
+const unsigned long WIFI_CONNECT_DELAY_MS = 30000; // 30 second delay on boot
 
 // GitHub repository and version file configuration
-const char* VERSION_URL = "https://<YourGithubUsername>.github.io/<YourRepoName>/version.json";
-const int CURRENT_VERSION = 1; // Increment this number for new OTA updates
+const char* VERSION_URL = "https://dnyaistore-blip.github.io/dny_bootup/version.json";
+const int CURRENT_VERSION = 1;
 
 // Pins of Relays (Appliance Control)
 const int R1 = 26;
@@ -61,6 +62,7 @@ EspalexaDevice* espalexaDevices[5];
 // --- Device State Variables ---
 int currentFanSpeed = 0;
 bool applianceStates[4] = {false, false, false, false};
+static bool otaChecked = false;
 
 // --- Function Prototypes ---
 void initNVS();
@@ -92,6 +94,10 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\n--- Device Boot ---");
 
+  // ADDED DELAY: Add a delay before starting any WiFi connection logic
+  Serial.printf("Waiting for %d seconds before attempting WiFi connection...\n", WIFI_CONNECT_DELAY_MS / 1000);
+  delay(WIFI_CONNECT_DELAY_MS);
+  
   // Initialize NVS for persistent storage
   initNVS();
 
@@ -141,7 +147,7 @@ void setup() {
 // --- Loop Function ---
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
-    handleFirmwareUpdates(); // Check and apply updates
+    handleFirmwareUpdates();
     espalexa.loop();
     ArduinoOTA.handle();
   } else {
@@ -213,11 +219,11 @@ void startNormalOperation() {
 }
 
 void espalexaDeviceCallbacks() {
-  espalexaDevices = espalexa.addDevice("Light 1", firstLightChanged);
-  espalexaDevices = espalexa.addDevice("Light 2", secondLightChanged);
-  espalexaDevices = espalexa.addDevice("Light 3", thirdLightChanged);
-  espalexaDevices = espalexa.addDevice("Light 4", fourthLightChanged);
-  espalexaDevices = espalexa.addDevice("Fan", fanChanged);
+  espalexaDevices[0] = espalexa.addDevice("Light 1", firstLightChanged);
+  espalexaDevices[1] = espalexa.addDevice("Light 2", secondLightChanged);
+  espalexaDevices[2] = espalexa.addDevice("Light 3", thirdLightChanged);
+  espalexaDevices[3] = espalexa.addDevice("Light 4", fourthLightChanged);
+  espalexaDevices[4] = espalexa.addDevice("Fan", fanChanged);
 }
 
 void setupOTA() {
@@ -255,11 +261,9 @@ void setupOTA() {
 }
 
 void handleFirmwareUpdates() {
-  // Check for OTA update on startup
-  static bool checked = false;
-  if (!checked) {
+  if (!otaChecked) {
     checkForOTAUpdate();
-    checked = true;
+    otaChecked = true;
   }
 }
 
@@ -337,9 +341,9 @@ void downloadAndApplyUpdate(const char* url) {
 }
 
 void announceAlert(const char* message) {
-  // Use a different Espalexa device or a third-party service for announcements.
-  // This is a placeholder for a more complex alert system.
   Serial.printf("ALEXA ALERT: %s\n", message);
+  // Placeholder for Alexa announcement, as Espalexa itself doesn't do voice alerts.
+  // For a real product, you'd need a more advanced service or library.
 }
 
 // --- Espalexa Callbacks Implementation ---
@@ -470,4 +474,3 @@ void checkPhysicalFanSwitches() {
     Serial.printf("Physical fan switch changed. Fan speed set to: %d\n", currentFanSpeed);
   }
 }
-
