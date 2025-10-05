@@ -51,12 +51,14 @@ Espalexa espalexa;
 WiFiManager wm;
 using namespace ace_button;
 ButtonConfig btnConfig;
+
+// ACEBUTTON FIX: Initialize with pin and config object pointer.
 AceButton button1(S1, &btnConfig);
 AceButton button2(S2, &btnConfig);
 AceButton button3(S3, &btnConfig);
 AceButton button4(S4, &btnConfig);
 
-// Pointers to Espalexa devices
+// ESPALEXA FIX: Declare an array of pointers to hold device objects.
 EspalexaDevice* espalexaDevices[5];
 
 // --- Device State Variables ---
@@ -97,7 +99,7 @@ void setup() {
   // ADDED DELAY: Add a delay before starting any WiFi connection logic
   Serial.printf("Waiting for %d seconds before attempting WiFi connection...\n", WIFI_CONNECT_DELAY_MS / 1000);
   delay(WIFI_CONNECT_DELAY_MS);
-  
+
   // Initialize NVS for persistent storage
   initNVS();
 
@@ -219,11 +221,13 @@ void startNormalOperation() {
 }
 
 void espalexaDeviceCallbacks() {
-  espalexaDevices[0] = espalexa.addDevice("Light 1", firstLightChanged);
-  espalexaDevices[1] = espalexa.addDevice("Light 2", secondLightChanged);
-  espalexaDevices[2] = espalexa.addDevice("Light 3", thirdLightChanged);
-  espalexaDevices[3] = espalexa.addDevice("Light 4", fourthLightChanged);
-  espalexaDevices[4] = espalexa.addDevice("Fan", fanChanged);
+  // ESPALEXA FIX: addDevice returns an index (uint8_t) in some versions.
+  // The correct way is to get the device pointer using getDevice() after adding.
+  espalexa.addDevice("Light 1", firstLightChanged);
+  espalexa.addDevice("Light 2", secondLightChanged);
+  espalexa.addDevice("Light 3", thirdLightChanged);
+  espalexa.addDevice("Light 4", fourthLightChanged);
+  espalexa.addDevice("Fan", fanChanged);
 }
 
 void setupOTA() {
@@ -343,35 +347,34 @@ void downloadAndApplyUpdate(const char* url) {
 void announceAlert(const char* message) {
   Serial.printf("ALEXA ALERT: %s\n", message);
   // Placeholder for Alexa announcement, as Espalexa itself doesn't do voice alerts.
-  // For a real product, you'd need a more advanced service or library.
 }
 
 // --- Espalexa Callbacks Implementation ---
 
 void firstLightChanged(uint8_t brightness) {
   bool state = (brightness > 0);
-  applianceStates[0] = state;
+  applianceStates[0] = state; // FIX: Use correct array index
   updateAppliancePhysicalState(0, state);
   Serial.printf("Light 1 state: %s (Brightness: %d)\n", state ? "ON" : "OFF", brightness);
 }
 
 void secondLightChanged(uint8_t brightness) {
   bool state = (brightness > 0);
-  applianceStates[1] = state;
+  applianceStates[1] = state; // FIX: Use correct array index
   updateAppliancePhysicalState(1, state);
   Serial.printf("Light 2 state: %s (Brightness: %d)\n", state ? "ON" : "OFF", brightness);
 }
 
 void thirdLightChanged(uint8_t brightness) {
   bool state = (brightness > 0);
-  applianceStates[2] = state;
+  applianceStates[2] = state; // FIX: Use correct array index
   updateAppliancePhysicalState(2, state);
   Serial.printf("Light 3 state: %s (Brightness: %d)\n", state ? "ON" : "OFF", brightness);
 }
 
 void fourthLightChanged(uint8_t brightness) {
   bool state = (brightness > 0);
-  applianceStates[3] = state;
+  applianceStates[3] = state; // FIX: Use correct array index
   updateAppliancePhysicalState(3, state);
   Serial.printf("Light 4 state: %s (Brightness: %d)\n", state ? "ON" : "OFF", brightness);
 }
@@ -445,7 +448,7 @@ void handleButtonEvent(AceButton* button, uint8_t eventType, uint8_t buttonState
       applianceStates[applianceIndex] = !applianceStates[applianceIndex];
       updateAppliancePhysicalState(applianceIndex, applianceStates[applianceIndex]);
       Serial.printf("Button %d clicked. Light %d state toggled to: %s\n", applianceIndex + 1, applianceIndex + 1, applianceStates[applianceIndex] ? "ON" : "OFF");
-      espalexaDevices[applianceIndex]->setValue(applianceStates[applianceIndex] ? 255 : 0);
+      espalexa.getDevice(applianceIndex)->setValue(applianceStates[applianceIndex] ? 255 : 0);
     }
   }
 }
@@ -469,7 +472,7 @@ void checkPhysicalFanSwitches() {
   if (newFanSwitchState != lastKnownFanSwitchState) {
     currentFanSpeed = newFanSwitchState;
     updateFanPhysicalState(currentFanSpeed);
-    espalexaDevices[4]->setValue(currentFanSpeed * 64);
+    espalexa.getDevice(4)->setValue(currentFanSpeed * 64);
     lastKnownFanSwitchState = newFanSwitchState;
     Serial.printf("Physical fan switch changed. Fan speed set to: %d\n", currentFanSpeed);
   }
