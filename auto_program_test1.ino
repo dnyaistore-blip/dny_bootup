@@ -14,8 +14,8 @@
 // --- Configuration Constants ---
 const char* NVS_NAMESPACE = "product_config";
 const char* NVS_KEY_IS_CONFIGURED = "is_configured";
-const char* DEFAULT_AP_SSID = "MyProduct_Setup";
-const char* DEFAULT_AP_PASSWORD = "configureme";
+const char* DEFAULT_AP_SSID = "Airtel_prad_5900";
+const char* DEFAULT_AP_PASSWORD = "air97139";
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 30000;
 const unsigned long WIFI_CONNECT_DELAY_MS = 30000; // 30 second delay on boot
 
